@@ -5,6 +5,13 @@ using namespace std;
 
 RSA *publicKey, *privateKey;
 
+void printEncryptedMessage(unsigned char encryptedText[], int encryptedLength)
+{
+	for (int i = 0; i < encryptedLength; ++i)
+		printf("%02X", encryptedText[i]);
+	cout << endl;
+}
+
 int ENCRYPT(char message[], unsigned char encryptedText[], char receiverIP[])
 {
 	// Data to be encrypted
@@ -18,13 +25,6 @@ int ENCRYPT(char message[], unsigned char encryptedText[], char receiverIP[])
 	
 	// Encrypt data using public key
 	int encryptedLength = RSAEncrypt(reinterpret_cast<const unsigned char *>(plaintext), plaintextLength, publicKey, encryptedText);
-	
-	/*
-	cout << "Encrypted text: ";
-	for (int i = 0; i < encryptedLength; ++i)
-		printf("%02X", encryptedText[i]);
-	cout << endl;
-	*/
 	
 	RSA_free(publicKey);
 	return encryptedLength;
@@ -62,11 +62,8 @@ void *receive_thread(void *args)
 		int encryptedLength;
 		parseInput(sender, receiver, encryptedText, recmsg, encryptedLength);
 		
-		//printf("Message has been parsed\n");
-		//printf("Sender: %s\n", sender);
-		//printf("Receiver: %s\n", receiver);
-		//printf("Length: %d\n", encryptedLength);
-		//printf("Encrypted msg: %s\n", encryptedText);
+		printf("Received Encrypted text: ");
+		printEncryptedMessage(reinterpret_cast<unsigned char*>(encryptedText), encryptedLength);
 		
 		//DECRYPTION FOR FINAL MESSAGE
 		fflush(stdout);
@@ -143,9 +140,6 @@ int main(int argc, char *args[])
 
 	send(sfd, clientIP, sizeof(clientIP), 0);
 	printf("IP Address sent to server.\n\n");
-		
-	//int bytesRead = recv(sfd, rbuff, sizeof(rbuff), 0);
-	//printf("Message read from server- %s\n", rbuff);
 	
 	//Polling for concurrent receive and send
 	struct pollfd pfds[1];
@@ -174,16 +168,19 @@ int main(int argc, char *args[])
 				receiverIP[strcspn(receiverIP, "\n")] = '\0';
 				
 				//ENCRYPTION FOR FINAL MESSAGE
+				printf("Encrypting message...\n");
 				unsigned char encryptedText[MSG_SIZE];
 				int encryptedLength = ENCRYPT(message, encryptedText, receiverIP);
 				encryptedText[encryptedLength] = '\0';
+				
+				printf("Encrypted text: ");
+				printEncryptedMessage(encryptedText, encryptedLength);
 				
 				char finalMessage[BSIZE];
 				sprintf(finalMessage, "%s|%s|%d|%s", clientIP, receiverIP, encryptedLength, reinterpret_cast<char*>(encryptedText));
 				finalMessage[strlen(finalMessage)] = '\0';
 				fflush(stdout);
 				
-				//printf("Final message: %s\n", finalMessage);
 				send(sfd, finalMessage, BSIZE, 0);
 				printf("Message sent successfully!\n\n");
 			}
@@ -192,5 +189,3 @@ int main(int argc, char *args[])
 	
 	return 0;
 }
-
-
