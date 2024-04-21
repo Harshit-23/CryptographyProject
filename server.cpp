@@ -112,7 +112,7 @@ void* client_thread_inbox(void *args)
 			break;
 		}
 		rebuff[bytesReceived] = '\0'; 
-		printf("Message received\n");
+		printf("Message received: %s\n", rebuff);
 		
 		char copy_rebuff[BSIZE];
 		strcpy(copy_rebuff, rebuff);
@@ -122,17 +122,13 @@ void* client_thread_inbox(void *args)
 		parseInput(sender, receiver, message, rebuff, encryptedLength);
 		
 		string receiver_ip(receiver);
-
-		//printf("Waiting for Semaphore in Inbox...\n");
 		sem_wait(&semaphores[nsfd]);
-		//printf("Acquired Semaphore in Inbox...\n");
 
 		string strMessage(copy_rebuff);
 		insertAtEnd(Outbox[receiver_ip], strMessage);
 		
 		printf("Message inserted into Inbox of %s.\n", receiver);
 		sem_post(&semaphores[nsfd]);
-		//printf("Released Semaphore in Inbox...\n");
 	}
 	
 	pthread_exit(NULL);
@@ -143,15 +139,13 @@ void* client_thread_outbox(void *args)
 	int *nsfd_ptr = (int*)args;
     int nsfd = *nsfd_ptr;
     
-    sleep(2);	//Take time for IP to be registered in Inbox thread
+    sleep(2);
     
     string ip = nsfdToIp[nsfd];
     
     while(1)
 	{
-		//printf("Waiting for Semaphore in Outbox...\n");
 		sem_wait(&semaphores[nsfd]);
-		//printf("Acquired Semaphore in Outbox...\n");
 
 		string message = deleteFromFront(Outbox[ip]);
 		if(message != "")
@@ -167,11 +161,8 @@ void* client_thread_outbox(void *args)
 			cout<<"Message sent to "<<ip<<"\n\n";
 		}
 
-		//printf("Message sent from Outbox...\n");
 		sem_post(&semaphores[nsfd]);
-		//printf("Released Semaphore in Outbox...\n");
-		
-		sleep(1); // Sleep to simulate intervals between operations
+		sleep(1);
     }
 	
 	pthread_exit(NULL);
@@ -179,6 +170,7 @@ void* client_thread_outbox(void *args)
 
 int main()
 {
+	//system("rm -r CA");
     //system("mkdir CA");
     /*************** Key Generation ****************************/
     const char *publicKeyFile = "./CA/public_key_server.pem";
@@ -235,4 +227,3 @@ int main()
 
     return 0;
 }
-
